@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventario Ramsés</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
+    h1 { text-align: center; color: #333; }
+    .formulario, .inventario {
+      background: #fff; padding: 15px; margin: 10px auto;
+      border-radius: 8px; max-width: 500px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    input, button {
+      padding: 10px; margin: 5px 0; width: 100%;
+      border: 1px solid #ccc; border-radius: 5px;
+    }
+    button { background: #0078d7; color: white; cursor: pointer; }
+    button:hover { background: #005a9e; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background: #0078d7; color: white; }
+  </style>
+
+  <!-- Manifest embebido -->
+  <link rel="manifest" href="data:application/manifest+json,{
+    &quot;name&quot;:&quot;Inventario Ramsés&quot;,
+    &quot;short_name&quot;:&quot;Ramsés&quot;,
+    &quot;start_url&quot;:&quot;.&quot;,
+    &quot;display&quot;:&quot;standalone&quot;,
+    &quot;background_color&quot;:&quot;#f4f4f4&quot;,
+    &quot;theme_color&quot;:&quot;#0078d7&quot;,
+    &quot;icons&quot;:[{&quot;src&quot;:&quot;icon.png&quot;,&quot;sizes&quot;:&quot;192x192&quot;,&quot;type&quot;:&quot;image/png&quot;}]
+  }">
+</head>
+<body>
+  <h1>Inventario - Tienda Ramsés</h1>
+
+  <div class="formulario">
+    <h2>Agregar producto</h2>
+    <input type="text" id="nombre" placeholder="Nombre del producto">
+    <input type="number" id="cantidad" placeholder="Cantidad">
+    <input type="number" id="precio" placeholder="Precio">
+    <button onclick="agregarProducto()">Agregar</button>
+  </div>
+
+  <div class="inventario">
+    <h2>Lista de productos</h2>
+    <table id="tablaInventario">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Cantidad</th>
+          <th>Precio</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    // Inventario en localStorage
+    let inventario = JSON.parse(localStorage.getItem("inventario")) || [];
+
+    function mostrarInventario() {
+      const tbody = document.querySelector("#tablaInventario tbody");
+      tbody.innerHTML = "";
+      inventario.forEach(prod => {
+        const fila = document.createElement("tr");
+        fila.innerHTML = `
+          <td>${prod.nombre}</td>
+          <td>${prod.cantidad}</td>
+          <td>$${prod.precio}</td>
+          <td>$${prod.cantidad * prod.precio}</td>
+        `;
+        tbody.appendChild(fila);
+      });
+      localStorage.setItem("inventario", JSON.stringify(inventario));
+    }
+
+    function agregarProducto() {
+      const nombre = document.getElementById("nombre").value;
+      const cantidad = parseInt(document.getElementById("cantidad").value);
+      const precio = parseFloat(document.getElementById("precio").value);
+
+      if(nombre && cantidad > 0 && precio > 0){
+        inventario.push({nombre, cantidad, precio});
+        mostrarInventario();
+        document.getElementById("nombre").value = "";
+        document.getElementById("cantidad").value = "";
+        document.getElementById("precio").value = "";
+      } else {
+        alert("Por favor ingresa datos válidos.");
+      }
+    }
+
+    mostrarInventario();
+
+    // Service Worker embebido
+    const swCode = `
+      self.addEventListener("install", e => {
+        e.waitUntil(
+          caches.open("ramses-inventario").then(cache => {
+            return cache.addAll(["./"]);
+          })
+        );
+      });
+      self.addEventListener("fetch", e => {
+        e.respondWith(
+          caches.match(e.request).then(resp => resp || fetch(e.request))
+        );
+      });
+    `;
+    const blob = new Blob([swCode], { type: "application/javascript" });
+    const swUrl = URL.createObjectURL(blob);
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register(swUrl).then(() => {
+        console.log("Service Worker registrado");
+      });
+    }
+  </script>
+</body>
+</html>
