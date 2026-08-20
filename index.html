@@ -9,7 +9,7 @@
     h1 { text-align: center; color: #333; }
     .formulario, .inventario {
       background: #fff; padding: 15px; margin: 10px auto;
-      border-radius: 8px; max-width: 500px;
+      border-radius: 8px; max-width: 600px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     input, button {
@@ -21,18 +21,15 @@
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
     th { background: #0078d7; color: white; }
+    .btn-eliminar {
+      background: #d9534f; color: white; border: none; padding: 5px 10px;
+      border-radius: 4px; cursor: pointer;
+    }
+    .btn-eliminar:hover { background: #c9302c; }
   </style>
 
   <!-- Manifest embebido -->
-  <link rel="manifest" href="data:application/manifest+json,{
-    &quot;name&quot;:&quot;Inventario Ramsés&quot;,
-    &quot;short_name&quot;:&quot;Ramsés&quot;,
-    &quot;start_url&quot;:&quot;.&quot;,
-    &quot;display&quot;:&quot;standalone&quot;,
-    &quot;background_color&quot;:&quot;#f4f4f4&quot;,
-    &quot;theme_color&quot;:&quot;#0078d7&quot;,
-    &quot;icons&quot;:[{&quot;src&quot;:&quot;icon.png&quot;,&quot;sizes&quot;:&quot;192x192&quot;,&quot;type&quot;:&quot;image/png&quot;}]
-  }">
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
   <h1>Inventario - Tienda Ramsés</h1>
@@ -54,6 +51,7 @@
           <th>Cantidad</th>
           <th>Precio</th>
           <th>Total</th>
+          <th>Acciones</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -61,19 +59,19 @@
   </div>
 
   <script>
-    // Inventario en localStorage
     let inventario = JSON.parse(localStorage.getItem("inventario")) || [];
 
     function mostrarInventario() {
       const tbody = document.querySelector("#tablaInventario tbody");
       tbody.innerHTML = "";
-      inventario.forEach(prod => {
+      inventario.forEach((prod, index) => {
         const fila = document.createElement("tr");
         fila.innerHTML = `
           <td>${prod.nombre}</td>
           <td>${prod.cantidad}</td>
           <td>$${prod.precio}</td>
           <td>$${prod.cantidad * prod.precio}</td>
+          <td><button class="btn-eliminar" onclick="eliminarProducto(${index})">Eliminar</button></td>
         `;
         tbody.appendChild(fila);
       });
@@ -96,27 +94,16 @@
       }
     }
 
+    function eliminarProducto(index) {
+      inventario.splice(index, 1);
+      mostrarInventario();
+    }
+
     mostrarInventario();
 
-    // Service Worker embebido
-    const swCode = `
-      self.addEventListener("install", e => {
-        e.waitUntil(
-          caches.open("ramses-inventario").then(cache => {
-            return cache.addAll(["./"]);
-          })
-        );
-      });
-      self.addEventListener("fetch", e => {
-        e.respondWith(
-          caches.match(e.request).then(resp => resp || fetch(e.request))
-        );
-      });
-    `;
-    const blob = new Blob([swCode], { type: "application/javascript" });
-    const swUrl = URL.createObjectURL(blob);
+    // Registrar Service Worker
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register(swUrl).then(() => {
+      navigator.serviceWorker.register("sw.js").then(() => {
         console.log("Service Worker registrado");
       });
     }
